@@ -401,9 +401,18 @@ class ExperimentTracker:
         if not self._active or not self.config.log_artifacts:
             return None
         try:
+            # MLflow 3 defaults this flavour to skops, which refuses to round-trip
+            # anything outside its allow-list -- and every bundle here carries
+            # project-defined types (the model adapters, and the value objects on
+            # their attributes). skops_trusted_types would mean enumerating those
+            # by hand and re-editing the list on every field added, so the failure
+            # would reappear silently at the next change. cloudpickle carries the
+            # same trust assumption the local store already documents, and unlike
+            # plain pickle it handles classes defined in this package.
             info = mlflow.sklearn.log_model(
                 sk_model=bundle.model,
                 name="model",
+                serialization_format=mlflow.sklearn.SERIALIZATION_FORMAT_CLOUDPICKLE,
                 registered_model_name=self.config.registered_model_name if promote else None,
             )
             _log.info(

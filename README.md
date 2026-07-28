@@ -235,6 +235,13 @@ each would have been invisible in a demo:
 - **MLflow 3** put the `file://` tracking backend into maintenance mode and it
   now raises on connect. The default is `sqlite:///mlflow.db`, which needs no
   server.
+- **MLflow 3 also switched `mlflow.sklearn` to skops**, which refuses to
+  round-trip types outside its allow-list. Every bundle here carries
+  project-defined ones — the model adapters, and the value objects hanging off
+  them — so registration failed while the local artifact still wrote, leaving
+  the registry silently empty. The flavour is pinned to cloudpickle; the
+  alternative, `skops_trusted_types`, is a hand-maintained list that would go
+  stale at the next field added.
 - **`StackingClassifier` cannot be used here** — it builds meta-features with
   `cross_val_predict`, which requires the folds to be a partition, and the
   purged splitters deliberately are not. The stack is assembled directly.
