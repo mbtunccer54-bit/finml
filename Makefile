@@ -76,7 +76,7 @@ train:  ## Run the training pipeline (Hydra; override with ARGS="model=lightgbm"
 .PHONY: train-fast
 train-fast:  ## Training smoke run: no tuning, small synthetic dataset
 	MLFLOW_TRACKING_URI=$(MLFLOW_URI) $(PY) -m application.train_pipeline \
-		tuning.enabled=false data.n_entities=300 data.n_periods=8 $(ARGS)
+		model.tuning.enabled=false data.n_entities=300 data.n_periods=8 $(ARGS)
 
 .PHONY: infer
 infer:  ## Batch inference over the demo dataset
