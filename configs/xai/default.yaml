@@ -1,0 +1,33 @@
+# =============================================================================
+# Explainability and model-risk diagnostics.
+#
+# Under SR 11-7 these are not optional extras: an adverse action notice needs a
+# local reason, and an explanation that changes between runs is not evidence.
+# =============================================================================
+
+# auto -> TreeSHAP for tree models, KernelSHAP for anything else.
+shap_backend: auto   # auto | tree | kernel
+shap_sample_size: 500
+shap_interaction_top_k: 8
+
+lime_num_features: 10
+lime_num_samples: 2000
+
+# Counterfactuals answer the recourse question: which ratios must move, and by
+# how little, to bring this obligor's PD down to the target.
+dice_total_cfs: 3
+dice_method: random   # random | genetic | kdtree
+# Empty means every numeric feature. Restrict this to the levers a borrower can
+# actually pull — macro variables are not actionable advice.
+dice_features_to_vary: []
+dice_desired_pd: 0.2
+
+permutation_repeats: 10
+
+# Re-explain the same row under several seeds; dispersion above the tolerance
+# marks the explanation unstable.
+stability_n_seeds: 5
+stability_tolerance: 0.25
+
+fairness_attribute: sector
+fairness_tolerance: 0.10

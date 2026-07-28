@@ -1,0 +1,140 @@
+# =============================================================================
+# Modelling: four base learners, a stacked ensemble, calibration and tuning.
+#
+# `params` are the static defaults. `search_space` is the Optuna space; when
+# `tuning.enabled` is true the sampled values override the matching `params`.
+# =============================================================================
+
+catboost:
+  enabled: true
+  params:
+    iterations: 500
+    depth: 6
+    learning_rate: 0.05
+    l2_leaf_reg: 3.0
+    border_count: 128
+    random_strength: 1.0
+    bagging_temperature: 1.0
+    loss_function: Logloss
+    eval_metric: PRAUC
+    allow_writing_files: false
+    verbose: false
+  search_space:
+    depth: { type: int, low: 4, high: 10 }
+    learning_rate: { type: float, low: 0.01, high: 0.3, log: true }
+    l2_leaf_reg: { type: float, low: 1.0, high: 10.0, log: true }
+    iterations: { type: int, low: 200, high: 1000, step: 100 }
+    random_strength: { type: float, low: 0.0, high: 3.0 }
+    bagging_temperature: { type: float, low: 0.0, high: 1.0 }
+
+xgboost:
+  enabled: true
+  params:
+    n_estimators: 500
+    max_depth: 6
+    learning_rate: 0.05
+    subsample: 0.8
+    colsample_bytree: 0.8
+    min_child_weight: 1.0
+    gamma: 0.0
+    reg_lambda: 1.0
+    reg_alpha: 0.0
+    tree_method: hist
+    eval_metric: aucpr
+  search_space:
+    max_depth: { type: int, low: 3, high: 10 }
+    learning_rate: { type: float, low: 0.01, high: 0.3, log: true }
+    n_estimators: { type: int, low: 200, high: 1000, step: 100 }
+    subsample: { type: float, low: 0.6, high: 1.0 }
+    colsample_bytree: { type: float, low: 0.6, high: 1.0 }
+    min_child_weight: { type: float, low: 0.5, high: 10.0, log: true }
+    gamma: { type: float, low: 0.0, high: 5.0 }
+    reg_lambda: { type: float, low: 0.1, high: 10.0, log: true }
+
+lightgbm:
+  enabled: true
+  params:
+    n_estimators: 500
+    num_leaves: 31
+    learning_rate: 0.05
+    feature_fraction: 0.8
+    bagging_fraction: 0.8
+    bagging_freq: 1
+    min_child_samples: 20
+    reg_lambda: 1.0
+    reg_alpha: 0.0
+    objective: binary
+    verbosity: -1
+  search_space:
+    num_leaves: { type: int, low: 15, high: 255, log: true }
+    learning_rate: { type: float, low: 0.01, high: 0.3, log: true }
+    n_estimators: { type: int, low: 200, high: 1000, step: 100 }
+    feature_fraction: { type: float, low: 0.5, high: 1.0 }
+    bagging_fraction: { type: float, low: 0.5, high: 1.0 }
+    min_child_samples: { type: int, low: 5, high: 100, log: true }
+    reg_lambda: { type: float, low: 0.01, high: 10.0, log: true }
+
+random_forest:
+  enabled: true
+  params:
+    n_estimators: 400
+    max_depth: 12
+    min_samples_split: 5
+    min_samples_leaf: 2
+    max_features: sqrt
+    criterion: gini
+  search_space:
+    n_estimators: { type: int, low: 100, high: 800, step: 100 }
+    max_depth: { type: int, low: 4, high: 24 }
+    min_samples_split: { type: int, low: 2, high: 20 }
+    min_samples_leaf: { type: int, low: 1, high: 10 }
+    max_features: { type: categorical, choices: [sqrt, log2, 0.5] }
+
+# --- Stacked ensemble --------------------------------------------------------
+ensemble:
+  enabled: true
+  meta_learner: logistic_regression   # logistic_regression | lightgbm
+  cv_folds: 5
+  passthrough: false
+  calibrate: true
+
+# --- Probability calibration -------------------------------------------------
+# A ranking model is not a PD model. Both methods are fitted and the benchmark
+# picks between them on expected calibration error.
+calibration:
+  enabled: true
+  methods: [sigmoid, isotonic]
+  cv_folds: 3
+  n_bins: 10
+  max_calibration_error: 0.05
+
+# --- Optuna ------------------------------------------------------------------
+# Genuinely multi-objective: maximise PR-AUC, minimise median inference latency.
+# The Pareto front is collapsed with the preference weights below.
+tuning:
+  enabled: true
+  n_trials: 25
+  timeout_s: 0
+  directions: [maximize, minimize]
+  pr_auc_weight: 0.85
+  latency_weight: 0.15
+  latency_budget_ms: 10.0
+  n_startup_trials: 5
+  pruning_enabled: true
+  seed: 42
+  n_jobs: 1
+
+# --- Business cost -----------------------------------------------------------
+# Credit policy: missing a defaulter costs ten times a false alarm.
+cost:
+  false_negative_cost: 10.0
+  false_positive_cost: 1.0
+  true_positive_cost: 0.0
+  true_negative_cost: 0.0
+
+# --- Reporting bounds and the promotion gate ---------------------------------
+pd_floor: 0.0003
+pd_cap: 1.0
+risk_band_thresholds: [0.01, 0.05, 0.15, 0.30]
+selection_min_pr_auc: 0.10
+selection_max_latency_ms: 50.0

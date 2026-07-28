@@ -1,0 +1,80 @@
+# =============================================================================
+# Stress scenarios and the macro-to-micro bridge.
+#
+# Shocks are ABSOLUTE deltas in each variable's natural unit, matching how CCAR
+# and EBA publish their scenario tables. gdp_growth: -0.045 moves growth from
+# +2.1% to -2.4%.
+#
+# The bridge runs in two stages so model validation can challenge each leg
+# separately (see domain/services.py::MacroTransmissionService):
+#   1. real economy — macro deltas move sector revenue
+#   2. credit       — the revenue shock plus the financing channel moves
+#                     default log-odds
+# =============================================================================
+
+satellite_model: var   # var | ar
+var_max_lags: 4
+forecast_horizon: 8
+
+# A -10% revenue shock lifts default log-odds by 0.8, roughly doubling the odds.
+revenue_to_log_odds: 8.0
+# Saturation cap: an extreme scenario should not drive every PD to 1.0.
+max_log_odds_shift: 3.0
+
+# Empty means use the shipped table in domain/services.py. Override per sector:
+#   sector_sensitivities:
+#     technology: { gdp_revenue_beta: 1.9 }
+sector_sensitivities: {}
+
+scenarios:
+  - name: baseline
+    severity: baseline
+    description: >-
+      Consensus path. Growth near trend, unemployment stable, policy rate on the
+      published forward curve.
+    horizon_quarters: 8
+    probability_weight: 0.55
+    shocks: {}
+
+  - name: adverse
+    severity: adverse
+    description: >-
+      Moderate global recession. Output contracts for three quarters,
+      unemployment rises 2pp, spreads widen as risk appetite falls.
+    horizon_quarters: 8
+    probability_weight: 0.30
+    shocks:
+      gdp_growth: -0.020
+      unemployment_rate: 0.020
+      interest_rate: 0.010
+      inflation_rate: 0.010
+      credit_spread: 0.012
+
+  - name: severely_adverse
+    severity: severely_adverse
+    description: >-
+      Severe recession with a financial-market shock. Output falls sharply,
+      unemployment rises 4.5pp, credit spreads gap out and funding tightens.
+    horizon_quarters: 8
+    probability_weight: 0.15
+    shocks:
+      gdp_growth: -0.045
+      unemployment_rate: 0.045
+      interest_rate: 0.020
+      inflation_rate: 0.025
+      credit_spread: 0.028
+
+  - name: stagflation
+    severity: adverse
+    description: >-
+      Supply-driven inflation with weak growth. Inflation and policy rates rise
+      together while real activity stalls — margin compression rather than a
+      demand collapse.
+    horizon_quarters: 8
+    probability_weight: 0.20
+    shocks:
+      gdp_growth: -0.010
+      unemployment_rate: 0.010
+      interest_rate: 0.035
+      inflation_rate: 0.055
+      credit_spread: 0.018

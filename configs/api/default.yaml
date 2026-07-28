@@ -1,0 +1,24 @@
+# =============================================================================
+# FastAPI inference service.
+# =============================================================================
+# Loopback by default. The container and `make serve` pass --host 0.0.0.0 to
+# uvicorn explicitly, so exposing the service on all interfaces is a deliberate
+# deployment choice rather than an inherited default.
+host: 127.0.0.1
+port: 8000
+
+title: FinML Credit Risk API
+version: "0.1.0"
+
+# Tighten this to the dashboard origin before anything leaves a private network.
+cors_origins: ["*"]
+
+max_batch_size: 1000
+enable_metrics: true
+
+# Registry stage loaded at startup. Falls back to the local champion artifact
+# when the registry is unreachable, so the service still starts offline.
+model_stage: Production
+
+explain_default_method: shap   # shap | lime | dice
+request_timeout_s: 30.0

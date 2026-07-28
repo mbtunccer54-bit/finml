@@ -1,0 +1,61 @@
+# =============================================================================
+# Root configuration.
+#
+# `base_config` is the RootConfig dataclass registered in
+# infrastructure/config/schemas.py. Loading it first means every value merged
+# below is validated and type-coerced against that schema, so a typo in a group
+# file fails at compose time rather than mid-training.
+#
+# Override anything from the CLI:
+#   python -m application.train_pipeline model.tuning.n_trials=50 seed=7
+#   python -m application.train_pipeline models@model=fast
+# =============================================================================
+defaults:
+  - base_config
+  - data: default
+  - features: default
+  # The directory is `models/` but the schema field is `model`; `@model`
+  # redirects the group into that node.
+  - models@model: default
+  - nlp: default
+  - drift: default
+  - scenario: ccar
+  - xai: default
+  - api: default
+  - dashboard: default
+  - tracking: default
+  - _self_
+
+seed: 42
+run_name: ""
+
+paths:
+  artifacts: artifacts
+  feature_store: data/feature_store
+  raw_data: data/raw
+  reports: artifacts/reports
+
+logging:
+  level: INFO
+  json_output: true
+  add_timestamp: true
+  include_caller: false
+
+training:
+  seed: ${seed}
+  n_jobs: -1
+  early_stopping_rounds: 50
+  verbose: false
+  register_best: true
+  save_artifacts: true
+  compute_shap_on_train: true
+  shap_sample_size: 500
+
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra:job.num}
+  job:
+    chdir: false

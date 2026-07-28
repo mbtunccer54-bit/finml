@@ -1,0 +1,117 @@
+name: finml-platform
+
+x-common-env: &common-env
+  MLFLOW_TRACKING_URI: http://mlflow:5000
+  PYTHONPATH: /app/src
+  FINML_ARTIFACT_DIR: /app/artifacts
+  FINML_FEATURE_STORE_DIR: /app/data/feature_store
+
+services:
+  # ---------------------------------------------------------------------------
+  # Experiment tracking / model registry
+  # ---------------------------------------------------------------------------
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.13.0
+    container_name: finml-mlflow
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow-store:/mlflow
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Inference API
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      target: runtime
+    container_name: finml-api
+    command: uvicorn infrastructure.api.fastapi_app:app --host 0.0.0.0 --port 8000
+    environment:
+      <<: *common-env
+    ports:
+      - "8000:8000"
+    volumes:
+      - artifacts:/app/artifacts
+      - feature-store:/app/data/feature_store
+      - ./configs:/app/configs:ro
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Analyst dashboard
+  # ---------------------------------------------------------------------------
+  dashboard:
+    build:
+      context: .
+      target: runtime
+    container_name: finml-dashboard
+    command: >
+      streamlit run /app/src/presentation/streamlit_app.py
+      --server.port 8501
+      --server.address 0.0.0.0
+      --server.headless true
+    environment:
+      <<: *common-env
+      FINML_API_URL: http://api:8000
+    ports:
+      - "8501:8501"
+    volumes:
+      - artifacts:/app/artifacts:ro
+      - ./configs:/app/configs:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8501/_stcore/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # One-shot trainer: `docker compose run --rm trainer`
+  # ---------------------------------------------------------------------------
+  trainer:
+    build:
+      context: .
+      target: runtime
+    container_name: finml-trainer
+    command: python -m application.train_pipeline
+    environment:
+      <<: *common-env
+    volumes:
+      - artifacts:/app/artifacts
+      - feature-store:/app/data/feature_store
+      - ./configs:/app/configs:ro
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    profiles: ["tools"]
+
+volumes:
+  mlflow-store:
+  artifacts:
+  feature-store:

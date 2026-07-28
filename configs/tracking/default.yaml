@@ -1,0 +1,20 @@
+# =============================================================================
+# MLflow experiment tracking and model registry.
+#
+# sqlite:/// needs no server, so `make train` records experiments on a laptop
+# with nothing else running. The older `file:./mlruns` backend was put into
+# maintenance mode in MLflow 3 and now raises on connect -- the platform
+# degrades to local artifacts if that happens, but tracking would be silently
+# lost, so the working backend is the default.
+#
+# docker-compose overrides MLFLOW_TRACKING_URI to point at the mlflow service.
+# =============================================================================
+enabled: true
+tracking_uri: sqlite:///mlflow.db
+experiment_name: finml-credit-risk
+registered_model_name: finml-pd-model
+log_artifacts: true
+
+# Stamped on every run so a metric can always be traced back to the exact
+# dataset that produced it.
+dataset_version: v1

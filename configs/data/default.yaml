@@ -1,0 +1,38 @@
+# =============================================================================
+# Dataset construction.
+#
+# `synthetic` builds a reproducible quarterly panel with a genuine macro factor
+# structure, so the whole platform runs offline and in CI. Switch `source` to
+# fred / worldbank / edgar to pull real data.
+# =============================================================================
+source: synthetic
+
+# --- Synthetic panel ---------------------------------------------------------
+n_entities: 1200
+n_periods: 16
+start_date: "2019-01-01"
+default_rate: 0.08
+seed: 42
+
+# --- Remote sources ----------------------------------------------------------
+# Left empty on purpose: the fetcher reads FRED_API_KEY from the environment so
+# the key never lands in version control.
+fred_api_key: ""
+cache_dir: data/raw/cache
+request_timeout_s: 20.0
+max_retries: 3
+
+validate_schema: true
+
+# --- Cross-validation --------------------------------------------------------
+# purged_kfold embargoes the neighbourhood of each validation block. Plain
+# TimeSeriesSplit is not offered: with overlapping outcome windows it leaks the
+# label across the fold boundary.
+split:
+  strategy: purged_kfold   # purged_kfold | blocked | expanding | sliding
+  n_splits: 5
+  embargo_frac: 0.01
+  purge_frac: 0.01
+  test_size_frac: 0.2
+  min_train_frac: 0.3
+  window_frac: 0.4

@@ -1,0 +1,42 @@
+# =============================================================================
+# Input drift detection, run before every scoring batch.
+#
+# PSI thresholds follow the conventional credit-scoring reading:
+#   < 0.10  stable
+#   0.10 - 0.25  moderate shift, investigate
+#   > 0.25  material shift, the model is scoring a population it did not see
+#
+# `on_severe` governs the fail-safe. `block` refuses to score and raises
+# DriftDetectedError; `warn` logs, alerts and scores anyway with the severity
+# attached to every response. Both paths always emit the alert — the choice is
+# only whether an unreliable score is returned at all. `block` is the default:
+# in a regulated lending decision, no score beats a silently wrong one.
+# =============================================================================
+enabled: true
+
+n_bins: 10
+psi_moderate_threshold: 0.10
+psi_severe_threshold: 0.25
+ks_alpha: 0.05
+
+on_severe: block   # block | warn
+
+# Below these sizes the PSI is too noisy to act on, so the check reports NONE
+# rather than raising a false alarm. min_batch_size is what keeps an interactive
+# single-obligor request from being refused as "drifted".
+min_reference_size: 50
+min_batch_size: 30
+
+# Empty means monitor every numeric feature in the contract.
+features: []
+
+# Never monitored. A scoring batch is normally one reporting period, so every
+# macro variable is constant within it while the training reference pools many
+# periods. The resulting PSI is enormous by construction and says nothing about
+# input quality. Macro movement is the scenario module's job, not drift's.
+exclude_features:
+  - gdp_growth
+  - unemployment_rate
+  - interest_rate
+  - inflation_rate
+  - credit_spread

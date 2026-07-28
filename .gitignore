@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+build/
+dist/
+.venv/
+venv/
+env/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Hydra / experiment outputs
+outputs/
+multirun/
+.hydra/
+
+# MLflow
+mlruns/
+mlartifacts/
+
+# Platform artifacts
+artifacts/
+data/feature_store/
+data/raw/
+data/interim/
+*.parquet
+*.sqlite
+*.db
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -1,0 +1,22 @@
+# =============================================================================
+# Streamlit analyst dashboard.
+#
+# The dashboard is a pure consumer of the FastAPI service — it holds no model
+# and no scoring logic, so what an analyst sees is exactly what the API served.
+# =============================================================================
+api_url: http://localhost:8000
+
+title: FinML Credit Risk Platform
+page_icon: "📊"
+layout: wide
+
+cache_ttl_s: 300
+
+# Empty means show every sector on load.
+default_sector: ""
+
+max_entities_displayed: 500
+risk_matrix_bins: 5
+show_raw_data: false
+
+theme_primary_color: "#2E86AB"

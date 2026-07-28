@@ -1,0 +1,27 @@
+# =============================================================================
+# Feature engineering and class-imbalance handling.
+#
+# The feature *contract* itself (names, dtypes, bounds) lives in
+# domain/entities.py — it is business vocabulary, not a tunable. This file only
+# controls how those features are prepared.
+# =============================================================================
+use_nlp_features: true
+use_macro_features: true
+
+# Sentiment and topic scores cost a transformer forward pass each; cache them.
+feature_store_enabled: true
+
+imputation: typical   # typical | median
+
+# --- Class imbalance ---------------------------------------------------------
+# class_weight is the default: it costs nothing and does not fabricate rows.
+# SMOTE is applied strictly inside the training fold (never before the split,
+# never on validation) to avoid synthesising a neighbour across the boundary.
+imbalance_strategy: class_weight   # class_weight | smote | focal | none
+smote_k_neighbors: 5
+smote_sampling_strategy: 0.3
+focal_gamma: 2.0
+focal_alpha: 0.25
+
+scale_numeric: true
+drop_correlated_above: 0.98

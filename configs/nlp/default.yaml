@@ -1,0 +1,50 @@
+# =============================================================================
+# Natural-language features.
+#
+# The heavy models live behind the optional `nlp` extra (`make install-nlp`).
+# With `allow_fallback: true` the platform still runs without torch installed:
+# FinBERT falls back to a finance-tuned lexicon, NER to regex patterns, and
+# BERTopic to seeded keyword matching. Fallback output is flagged in the logs
+# and on the feature-store record so it is never mistaken for model output.
+# =============================================================================
+enabled: true
+
+finbert_model: ProsusAI/finbert
+ner_model: en_core_web_sm
+topic_model: all-MiniLM-L6-v2
+
+batch_size: 16
+max_length: 512
+device: auto   # auto | cpu | cuda
+
+lookback_days: 90
+
+# Seed keywords double as the BERTopic topic seeds and as the fallback matcher.
+risk_topics:
+  credit:
+    - default
+    - downgrade
+    - covenant
+    - insolvency
+    - restructuring
+    - bankruptcy
+    - delinquency
+    - impairment
+  liquidity:
+    - liquidity
+    - cash flow
+    - refinancing
+    - maturity
+    - funding
+    - working capital
+    - credit line
+  operational:
+    - fraud
+    - outage
+    - recall
+    - litigation
+    - cyber
+    - investigation
+    - misconduct
+
+allow_fallback: true

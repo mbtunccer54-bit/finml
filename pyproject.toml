@@ -1,0 +1,232 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "finml-platform"
+version = "0.1.0"
+description = "Production-grade financial ML & MLOps platform (SR 11-7 / ECB aligned)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+authors = [{ name = "FinML Platform Team" }]
+keywords = ["credit-risk", "mlops", "xai", "stress-testing", "model-risk-management"]
+
+dependencies = [
+    # --- Core ---
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "hydra-core>=1.3",
+    "omegaconf>=2.3",
+    "structlog>=24.1",
+    # --- Data ---
+    "numpy>=1.26",
+    "pandas>=2.1",
+    "scipy>=1.11",
+    "pandera>=0.19",
+    "pyarrow>=15.0",
+    # --- ML ---
+    "scikit-learn>=1.4",
+    "catboost>=1.2",
+    "xgboost>=2.0",
+    "lightgbm>=4.3",
+    "imbalanced-learn>=0.12",
+    "statsmodels>=0.14",
+    # --- Tuning & tracking ---
+    "optuna>=3.6",
+    "mlflow>=2.12",
+    # --- XAI ---
+    "shap>=0.45",
+    "lime>=0.2.0.1",
+    "dice-ml>=0.11",
+    # --- API ---
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "prometheus-client>=0.20",
+    "httpx>=0.27",
+    # --- UI ---
+    "streamlit>=1.33",
+    "plotly>=5.20",
+    # --- Viz backend for artifact rendering ---
+    "matplotlib>=3.8",
+]
+
+[project.optional-dependencies]
+nlp = [
+    "torch>=2.2",
+    "transformers>=4.40",
+    "bertopic>=0.16",
+    "spacy>=3.7",
+    "sentence-transformers>=2.7",
+]
+dev = [
+    "pytest>=8.1",
+    "pytest-cov>=5.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4",
+    "mypy>=1.9",
+    "bandit>=1.7",
+    "pre-commit>=3.7",
+    "great-expectations>=0.18",
+    "types-requests",
+    "pandas-stubs",
+]
+
+[project.scripts]
+finml-train = "application.train_pipeline:main"
+finml-infer = "application.inference_pipeline:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["domain*", "application*", "infrastructure*", "presentation*"]
+
+# ---------------------------------------------------------------------------
+# Ruff — format + lint
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "C4",   # comprehensions
+    "SIM",  # simplify
+    "ARG",  # unused arguments
+    "PTH",  # use pathlib
+    "RUF",  # ruff-specific
+    "ANN",  # type annotations
+    "D",    # pydocstyle
+    "T20",  # flake8-print  -> bans print()
+    "TRY",  # tryceratops   -> bans bare/empty except
+    "BLE",  # blind except
+]
+ignore = [
+    "ANN401",  # Allow `Any` in explicitly-typed dynamic boundaries
+    "D203",    # incompatible with D211
+    "D213",    # incompatible with D212
+    "TRY003",  # long messages outside exception class - we use context dicts
+    "B008",    # FastAPI Depends() in defaults is idiomatic
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D", "ANN", "ARG", "S101"]
+
+# BLE001 (blind `except Exception`) is permitted *only* at third-party
+# integration boundaries, and only where the documented design is to degrade and
+# keep going: transformers/spaCy/BERTopic falling back to their offline tiers,
+# MLflow being unreachable, SHAP/DiCE/Optuna failing on an awkward input.
+#
+# These libraries raise their own uncatalogued exception types, so enumerating
+# them would be both incomplete and a maintenance trap. Every one of these
+# handlers logs the error type and reason before continuing -- none is silent,
+# which is the rule that actually matters. Note that TRY302/`except: pass` stays
+# banned everywhere, and a unit test asserts no silent handler exists.
+"src/infrastructure/nlp/*.py" = ["BLE001"]
+"src/infrastructure/xai/*.py" = ["BLE001"]
+"src/infrastructure/models/registry.py" = ["BLE001"]
+"src/infrastructure/models/tuning.py" = ["BLE001"]
+"src/application/train_pipeline.py" = ["BLE001"]
+"src/application/scenario_simulator.py" = ["BLE001"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.isort]
+known-first-party = ["domain", "application", "infrastructure", "presentation"]
+
+# ---------------------------------------------------------------------------
+# Mypy — strict type checking
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+strict = true
+warn_unreachable = true
+warn_unused_ignores = false
+disallow_any_generics = true
+show_error_codes = true
+namespace_packages = true
+explicit_package_bases = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = [
+    "catboost.*", "xgboost.*", "lightgbm.*", "shap.*", "lime.*", "dice_ml.*",
+    "mlflow.*", "optuna.*", "imblearn.*", "pandera.*", "statsmodels.*",
+    "streamlit.*", "plotly.*", "sklearn.*", "transformers.*", "torch.*",
+    "bertopic.*", "spacy.*", "sentence_transformers.*", "matplotlib.*", "scipy.*",
+]
+ignore_missing_imports = true
+
+# `domain` must remain pure: this override makes any accidental use of a
+# scientific-stack import surface as an error rather than being silently typed.
+[[tool.mypy.overrides]]
+module = "domain.*"
+disallow_any_unimported = true
+
+# scikit-learn ships no type stubs, so `BaseEstimator` and `ClassifierMixin`
+# resolve to `Any` and strict mode rejects subclassing them. Subclassing is the
+# only way to get an estimator that `clone`, `StackingClassifier` and
+# `CalibratedClassifierCV` will accept, so the check is relaxed for exactly the
+# three modules that define such estimators — not globally.
+[[tool.mypy.overrides]]
+module = [
+    "infrastructure.models.base",
+    "infrastructure.models.ensemble",
+    "infrastructure.models.calibration",
+]
+disallow_subclassing_any = false
+
+# ---------------------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "-ra",
+]
+markers = [
+    "unit: fast isolated tests",
+    "integration: tests crossing process/service boundaries",
+    "data: data-contract / schema tests",
+    "slow: excluded from the pre-commit fast hook",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::FutureWarning",
+]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+omit = ["*/presentation/*", "*/__init__.py"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@overload",
+    "\\.\\.\\.",
+]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]
+skips = ["B101"]
