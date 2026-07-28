@@ -62,9 +62,13 @@ def _checks_for(spec: FieldSpec) -> list[pa.Check]:
     """
     checks: list[pa.Check] = []
     if spec.ge is not None:
-        checks.append(pa.Check.ge(spec.ge, name=f"{spec.name}_ge", error=f"{spec.name} < {spec.ge}"))
+        checks.append(
+            pa.Check.ge(spec.ge, name=f"{spec.name}_ge", error=f"{spec.name} < {spec.ge}")
+        )
     if spec.le is not None:
-        checks.append(pa.Check.le(spec.le, name=f"{spec.name}_le", error=f"{spec.name} > {spec.le}"))
+        checks.append(
+            pa.Check.le(spec.le, name=f"{spec.name}_le", error=f"{spec.name} > {spec.le}")
+        )
     if spec.allowed is not None:
         checks.append(
             pa.Check.isin(

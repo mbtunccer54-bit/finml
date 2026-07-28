@@ -99,7 +99,9 @@ def population_stability_index(
         # A constant reference feature cannot drift in a PSI sense; report the
         # binary case of "did the current sample leave the constant?".
         moved = float(np.mean(cur != ref[0]))
-        return PSIResult(0.0 if moved == 0.0 else float("inf"), tuple(edges), (1.0,), (1.0 - moved,))
+        return PSIResult(
+            0.0 if moved == 0.0 else float("inf"), tuple(edges), (1.0,), (1.0 - moved,)
+        )
 
     # Open the outer edges so values outside the reference range are counted
     # rather than dropped -- an out-of-range shift is precisely what we hunt.

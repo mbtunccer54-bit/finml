@@ -537,11 +537,12 @@ class _HttpFetcherBase:
         if cached.is_file():
             try:
                 payload: dict[str, Any] = json.loads(cached.read_text(encoding="utf-8"))
-                _log.debug("fetch.cache_hit", cache_key=cache_key)
-                return payload
             except (OSError, json.JSONDecodeError) as exc:
                 # A corrupt cache entry must not be fatal; re-fetch instead.
                 _log.warning("fetch.cache_unreadable", cache_key=cache_key, error=str(exc))
+            else:
+                _log.debug("fetch.cache_hit", cache_key=cache_key)
+                return payload
 
         last_error: Exception | None = None
         for attempt in range(1, self.config.max_retries + 1):
@@ -650,8 +651,9 @@ class FREDFetcher(_HttpFetcherBase):
         for variable, series_id in FRED_SERIES.items():
             raw = self.fetch_series(series_id)
             quarterly = raw.resample("QE").last()
-            # FRED publishes rates in percent; the contract stores fractions.
-            columns[variable] = quarterly / 100.0 if variable != "gdp_growth" else quarterly / 100.0
+            # FRED publishes every one of these series in percent -- including
+            # the annualised GDP growth rate -- and the contract stores fractions.
+            columns[variable] = quarterly / 100.0
 
         macro = pd.DataFrame(columns).dropna()
         macro.index.name = DATE_COLUMN

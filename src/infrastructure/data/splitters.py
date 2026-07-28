@@ -23,6 +23,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
+from itertools import pairwise
 from typing import Any
 
 import numpy as np
@@ -212,10 +213,10 @@ class PurgedKFold(TimeAwareSplitter):
         n_periods = int(positions.max()) + 1
 
         bounds = np.linspace(0, n_periods, self.n_splits + 1).astype(int)
-        purge = max(int(round(self.purge_frac * n_periods)), 0)
-        embargo = max(int(round(self.embargo_frac * n_periods)), 0)
+        purge = max(round(self.purge_frac * n_periods), 0)
+        embargo = max(round(self.embargo_frac * n_periods), 0)
 
-        for fold, (start, end) in enumerate(zip(bounds[:-1], bounds[1:], strict=True)):
+        for fold, (start, end) in enumerate(pairwise(bounds)):
             if end <= start:
                 continue
             val_mask = (positions >= start) & (positions < end)
@@ -275,7 +276,7 @@ class BlockedTimeSeriesSplit(TimeAwareSplitter):
         positions = _time_positions(len(x), groups)
         n_periods = int(positions.max()) + 1
         bounds = np.linspace(0, n_periods, self.n_splits + 2).astype(int)
-        embargo = max(int(round(self.embargo_frac * n_periods)), 0)
+        embargo = max(round(self.embargo_frac * n_periods), 0)
 
         for fold in range(self.n_splits):
             train_end = bounds[fold + 1]
@@ -334,10 +335,10 @@ class ExpandingWindowSplit(TimeAwareSplitter):
         """
         positions = _time_positions(len(x), groups)
         n_periods = int(positions.max()) + 1
-        first_train_end = max(int(round(self.min_train_frac * n_periods)), 1)
+        first_train_end = max(round(self.min_train_frac * n_periods), 1)
         remaining = n_periods - first_train_end
         step = max(remaining // self.n_splits, 1)
-        embargo = max(int(round(self.embargo_frac * n_periods)), 0)
+        embargo = max(round(self.embargo_frac * n_periods), 0)
 
         for fold in range(self.n_splits):
             train_end = first_train_end + fold * step
@@ -397,10 +398,10 @@ class SlidingWindowSplit(TimeAwareSplitter):
         """
         positions = _time_positions(len(x), groups)
         n_periods = int(positions.max()) + 1
-        window = max(int(round(self.window_frac * n_periods)), 1)
+        window = max(round(self.window_frac * n_periods), 1)
         remaining = n_periods - window
         step = max(remaining // self.n_splits, 1)
-        embargo = max(int(round(self.embargo_frac * n_periods)), 0)
+        embargo = max(round(self.embargo_frac * n_periods), 0)
 
         for fold in range(self.n_splits):
             train_start = fold * step
@@ -485,7 +486,7 @@ def time_based_holdout(
             "Need at least two distinct time points for a holdout", n_periods=n_periods
         )
 
-    n_test_periods = max(int(round(test_size_frac * n_periods)), 1)
+    n_test_periods = max(round(test_size_frac * n_periods), 1)
     cutoff = n_periods - n_test_periods
     if cutoff < 1:
         cutoff = 1
