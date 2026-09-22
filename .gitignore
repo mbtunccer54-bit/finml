@@ -45,3 +45,4 @@ data/interim/
 Thumbs.db
 .idea/
 .vscode/
+.gstack/
