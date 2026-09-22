@@ -281,3 +281,9 @@ src/presentation/   streamlit_app.py
 tests/              unit, integration, data-contract
 scripts/            check_domain_purity.py
 ```
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).

@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Production-grade financial ML & MLOps platform (SR 11-7 / ECB aligned)"
 readme = "README.md"
 requires-python = ">=3.12"
-license = { text = "Proprietary" }
+license = { text = "MIT" }
 authors = [{ name = "FinML Platform Team" }]
 keywords = ["credit-risk", "mlops", "xai", "stress-testing", "model-risk-management"]
 
