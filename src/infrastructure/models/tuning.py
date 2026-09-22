@@ -19,7 +19,7 @@ needs no code change.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal, cast
 
 import numpy as np
 import optuna
@@ -253,7 +253,11 @@ def tune_model(
         if len(config.directions) > 1
         else TPESampler(seed=config.seed, n_startup_trials=config.n_startup_trials)
     )
-    study = optuna.create_study(directions=list(config.directions), sampler=sampler)
+    # ``directions`` arrives from YAML as ``list[str]``; Optuna's signature wants
+    # the ``"minimize"``/``"maximize"`` literals. The schema constrains the values
+    # to exactly those, so narrowing here is honest rather than a blanket ignore.
+    directions = cast("list[Literal['minimize', 'maximize']]", list(config.directions))
+    study = optuna.create_study(directions=directions, sampler=sampler)
 
     if config.pruning_enabled and len(config.directions) > 1:
         _log.info(
